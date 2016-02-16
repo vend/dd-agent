@@ -10,8 +10,8 @@ init_config:
 config:
 - interface: eth0
   tags: [foo, bar]
-  ips: []                   # will perform name lookup and tag with hostname if available.
-  hosts: [myhost]           # will perform ip lookup and filter by hosts ip's
+  ips: []                   # Whitelist by IP - will perform name lookup and tag with hostname if available.
+  hosts: [myhost]           # Whitelist by hostname - will perform ip lookup and filter by hosts ip's
 
 # - interface: eth2           # multiple interfaces may be sniffed from.
 #   tags: [bar]
