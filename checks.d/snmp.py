@@ -78,8 +78,9 @@ class SnmpCheck(NetworkCheck):
         metrics = instance.get('metrics', [])
         timeout = int(instance.get('timeout', self.DEFAULT_TIMEOUT))
         retries = int(instance.get('retries', self.DEFAULT_RETRIES))
+        enforce_constraints = _is_affirmative(instance.get('enforce_mib_constraints', True))
 
-        return ip_address, tags, metrics, timeout, retries
+        return ip_address, tags, metrics, timeout, retries, enforce_constraints
 
 
     def snmp_logger(self, func):
@@ -174,7 +175,7 @@ class SnmpCheck(NetworkCheck):
             instance["service_check_error"] = message
             raise Exception(message)
 
-    def check_table(self, instance, oids, lookup_names, timeout, retries):
+    def check_table(self, instance, oids, lookup_names, timeout, retries, enforce_constraints=False):
         '''
         Perform a snmpwalk on the domain specified by the oids, on the device
         configured in instance.
@@ -205,7 +206,7 @@ class SnmpCheck(NetworkCheck):
                 auth_data,
                 transport_target,
                 *(oids[first_oid:first_oid + self.oid_batch_size]),
-                lookupValues=lookup_names,
+                lookupValues=enforce_constraints,
                 lookupNames=lookup_names)
 
             first_oid = first_oid + self.oid_batch_size
@@ -231,7 +232,7 @@ class SnmpCheck(NetworkCheck):
                     auth_data,
                     transport_target,
                     *missing_results,
-                    lookupValues=lookup_names,
+                    lookupValues=enforce_constraints,
                     lookupNames=lookup_names)
 
                 # Raise on error_indication
@@ -265,7 +266,7 @@ class SnmpCheck(NetworkCheck):
         and should be looked up and one for those specified by oids
         '''
 
-        ip_address, tags, metrics, timeout, retries = self._load_conf(instance)
+        ip_address, tags, metrics, timeout, retries, enforce_constraints = self._load_conf(instance)
 
         tags += ['snmp_device:{0}'.format(ip_address)]
 
@@ -289,12 +290,14 @@ class SnmpCheck(NetworkCheck):
         try:
             if table_oids:
                 self.log.debug("Querying device %s for %s oids", ip_address, len(table_oids))
-                table_results = self.check_table(instance, table_oids, True, timeout, retries)
+                table_results = self.check_table(instance, table_oids, True, timeout, retries,
+                                                 enforce_constraints=enforce_constraints)
                 self.report_table_metrics(metrics, table_results, tags)
 
             if raw_oids:
                 self.log.debug("Querying device %s for %s oids", ip_address, len(raw_oids))
-                raw_results = self.check_table(instance, raw_oids, False, timeout, retries)
+                raw_results = self.check_table(instance, raw_oids, False, timeout, retries,
+                                               enforce_constraints=False)
                 self.report_raw_metrics(metrics, raw_results, tags)
         except Exception as e:
             if "service_check_error" not in instance:
