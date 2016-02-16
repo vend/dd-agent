@@ -7,6 +7,7 @@ from pysnmp.entity.rfc3413.oneliner import cmdgen
 import pysnmp.proto.rfc1902 as snmp_type
 from pysnmp.smi import builder
 from pysnmp.smi.exval import noSuchInstance, noSuchObject
+from pysnmp.error import PySnmpError
 
 # project
 from checks.network_checks import NetworkCheck, Status
@@ -201,53 +202,56 @@ class SnmpCheck(NetworkCheck):
 
         while first_oid < len(oids):
 
-            # Start with snmpget command
-            error_indication, error_status, error_index, var_binds = self.snmpget(
-                auth_data,
-                transport_target,
-                *(oids[first_oid:first_oid + self.oid_batch_size]),
-                lookupValues=enforce_constraints,
-                lookupNames=lookup_names)
-
-            first_oid = first_oid + self.oid_batch_size
-
-            # Raise on error_indication
-            self.raise_on_error_indication(error_indication, instance)
-
-            missing_results = []
-            complete_results = []
-
-            for var in var_binds:
-                result_oid, value = var
-                if reply_invalid(value):
-                    oid_tuple = result_oid.asTuple()
-                    oid = ".".join([str(i) for i in oid_tuple])
-                    missing_results.append(oid)
-                else:
-                    complete_results.append(var)
-
-            if missing_results:
-                # If we didn't catch the metric using snmpget, try snmpnext
-                error_indication, error_status, error_index, var_binds_table = self.snmpgetnext(
+            try:
+                # Start with snmpget command
+                error_indication, error_status, error_index, var_binds = self.snmpget(
                     auth_data,
                     transport_target,
-                    *missing_results,
+                    *(oids[first_oid:first_oid + self.oid_batch_size]),
                     lookupValues=enforce_constraints,
                     lookupNames=lookup_names)
 
                 # Raise on error_indication
                 self.raise_on_error_indication(error_indication, instance)
 
-                if error_status:
-                    message = "{0} for instance {1}".format(error_status.prettyPrint(),
-                                                            instance["ip_address"])
-                    instance["service_check_error"] = message
-                    self.warning(message)
+                missing_results = []
+                complete_results = []
 
-                for table_row in var_binds_table:
-                    complete_results.extend(table_row)
+                for var in var_binds:
+                    result_oid, value = var
+                    if reply_invalid(value):
+                        oid_tuple = result_oid.asTuple()
+                        oid = ".".join([str(i) for i in oid_tuple])
+                        missing_results.append(oid)
+                    else:
+                        complete_results.append(var)
 
-            all_binds.extend(complete_results)
+                if missing_results:
+                    # If we didn't catch the metric using snmpget, try snmpnext
+                    error_indication, error_status, error_index, var_binds_table = self.snmpgetnext(
+                        auth_data,
+                        transport_target,
+                        *missing_results,
+                        lookupValues=enforce_constraints,
+                        lookupNames=lookup_names)
+
+                    # Raise on error_indication
+                    self.raise_on_error_indication(error_indication, instance)
+
+                    if error_status:
+                        message = "{0} for instance {1}".format(error_status.prettyPrint(),
+                                                                instance["ip_address"])
+                        instance["service_check_error"] = message
+                        self.warning(message)
+
+                    for table_row in var_binds_table:
+                        complete_results.extend(table_row)
+
+                all_binds.extend(complete_results)
+            except PySnmpError as e:
+                self.log.error("Error fetching OIDSs in pysnmp: %s ", e)
+
+            first_oid = first_oid + self.oid_batch_size
 
         for result_oid, value in all_binds:
             if lookup_names:
