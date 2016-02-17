@@ -249,7 +249,11 @@ class SnmpCheck(NetworkCheck):
 
                 all_binds.extend(complete_results)
             except PySnmpError as e:
-                self.log.error("Error fetching OIDSs in pysnmp: %s ", e)
+                self.warning("Fail to collect metrics: {0}".format(e))
+                if "service_check_error" not in instance:
+                    instance["service_check_error"] = "Fail to collect metrics: {0}".format(e)
+                if "service_check_severity" not in instance:
+                    instance["service_check_severity"] = Status.CRITICAL
 
             first_oid = first_oid + self.oid_batch_size
 
@@ -312,7 +316,10 @@ class SnmpCheck(NetworkCheck):
             # Report service checks
             tags = ["snmp_device:%s" % ip_address]
             if "service_check_error" in instance:
-                return [(self.SC_STATUS, Status.DOWN, instance["service_check_error"])]
+                status = Status.DOWN
+                if "service_check_severity" in instance:
+                    status = instance["service_check_severity"]
+                return [(self.SC_STATUS, status, instance["service_check_error"])]
 
             return [(self.SC_STATUS, Status.UP, None)]
 
