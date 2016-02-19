@@ -51,8 +51,7 @@ class AgentPayload(collections.MutableMapping):
     Each of these payloads is automatically submited to its specific endpoint.
     """
     METADATA_KEYS = frozenset(['meta', 'tags', 'host-tags', 'systemStats',
-                               'agent_checks', 'gohai', 'external_host_tags',
-                               'dd-tcp-rtt'])
+                               'agent_checks', 'gohai', 'external_host_tags'])
 
     DUPLICATE_KEYS = frozenset(['apiKey', 'agentVersion'])
 
