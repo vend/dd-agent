@@ -37,7 +37,7 @@ class TestKubernetes(AgentCheckTest):
         mocks = {
             '_retrieve_metrics': lambda x: json.loads(Fixtures.read_file("metrics.json")),
             '_retrieve_kube_labels': lambda: json.loads(Fixtures.read_file("kube_labels.json")),
-            # parts of the json returned by the kubelets api is escaped, keep it untouched
+            # parts of the json returned by the kubelet api is escaped, keep it untouched
             '_retrieve_pods_list': lambda x: json.loads(Fixtures.read_file("pods_list.json", string_escape=False)),
         }
         config = {
@@ -53,7 +53,7 @@ class TestKubernetes(AgentCheckTest):
         mocks = {
             '_retrieve_metrics': lambda x: json.loads(Fixtures.read_file("metrics.json")),
             '_retrieve_kube_labels': lambda: json.loads(Fixtures.read_file("kube_labels.json")),
-            # parts of the json returned by the kubelets api is escaped, keep it untouched
+            # parts of the json returned by the kubelet api is escaped, keep it untouched
             '_retrieve_pods_list': lambda x: json.loads(Fixtures.read_file("pods_list.json", string_escape=False)),
         }
         config = {
@@ -110,7 +110,7 @@ class TestKubernetes(AgentCheckTest):
         mocks = {
             '_retrieve_metrics': lambda x: json.loads(Fixtures.read_file("metrics.json")),
             '_retrieve_kube_labels': lambda: json.loads(Fixtures.read_file("kube_labels.json")),
-            # parts of the json returned by the kubelets api is escaped, keep it untouched
+            # parts of the json returned by the kubelet api is escaped, keep it untouched
             '_retrieve_pods_list': lambda x: json.loads(Fixtures.read_file("pods_list.json", string_escape=False)),
         }
         config = {
