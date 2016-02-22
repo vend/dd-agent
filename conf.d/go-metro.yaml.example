@@ -1,8 +1,10 @@
 # NOTE: for go metro to run unprivileged, you will have to set CAP_NET_RAW capabilities on the binary:
 #        (debian based) $ sudo apt-get update libcap
-#        (redhat based) $ sudo yum install compat-libcap1
+#        (redhat based) $ sudo yum install libcap
 #        (redhat based - alternatively) $ sudo yum install compat-libcap1
 #        $ sudo setcap cap_net_raw+ep /opt/datadog-agent/bin/go-metro
+#
+#        Also, please note that go-metro logs to its own file - found in /var/log/datadog/go-metro.log.
 
 init_config:
     snaplen: 512            # should be >=104 (to accomodate for the largest possible TCP header)
@@ -16,10 +18,9 @@ init_config:
 config:
 - interface: eth0           # metrics will be also tagged by interface.
   tags:
-    - foo
-    - bar
+    - foo:bar
   ips:                        # Whitelist by IP - will perform name lookup and tag with hostname if available.
-    - 192.168.0.1             # <--- SAMPLE IP SET YOU OWN LIST.
+    - 192.168.0.1             # <--- SAMPLE IP SET YOUR OWN LIST.
   hosts:                      # Whitelist by hostname - will perform ip lookup and filter by hosts ip's
     - somehost.somedomain.to  # <---SAMPLE HOST, SET YOUR OWN LIST.
 
@@ -31,7 +32,7 @@ config:
 
 # - interface: eth2           # multiple interfaces may be sniffed from.
 #   tags:
-#     - bla
+#     - bla:zap
 #   hosts:                   # will perform ip lookup and filter by hosts ip's
 #     - datadog.com
 
