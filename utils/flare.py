@@ -216,14 +216,14 @@ class Flare(object):
         self._add_log_file_tar(self._forwarder_log)
         self._add_log_file_tar(self._dogstatsd_log)
         self._add_log_file_tar(self._jmxfetch_log)
-        self._add_log_file_tar(self._gometro_log)
+        self._add_log_file_tar(self._gometro_log, warn=False)
         self._add_log_file_tar(
             "{0}/*supervisord.log".format(os.path.dirname(self._collector_log))
         )
 
-    def _add_log_file_tar(self, file_path):
+    def _add_log_file_tar(self, file_path, warn=True):
         for f in glob.glob('{0}*'.format(file_path)):
-            if self._can_read(f):
+            if self._can_read(f, warn=warn):
                 self._add_file_tar(
                     f,
                     os.path.join('log', os.path.basename(f))
