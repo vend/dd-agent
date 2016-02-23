@@ -274,6 +274,9 @@ SYNTHETIC_VARS = {
     'Qcache_instant_utilization': ('mysql.performance.qcache.utilization.instant', GAUGE),
 }
 
+PROCESSLIST_VARS = {
+    'processlist_size': ('mysql.info.processlist.size', GAUGE),
+}
 
 class MySql(AgentCheck):
     SERVICE_CHECK_NAME = 'mysql.can_connect'
@@ -521,6 +524,11 @@ class MySql(AgentCheck):
             # report avg query response time per schema to Datadog
             results['information_schema_size'] = self._query_size_per_schema(db)
             metrics.update(SCHEMA_VARS)
+
+        if _is_affirmative(options.get('processlist_size', False)):
+            # Get the number of different states in the proceesslist
+            results['processlist_size'] = self._query_processlist_size(db)
+            metrics.update(PROCESSLIST_VARS)
 
         if _is_affirmative(options.get('replication', False)):
             # Get replica stats
@@ -1286,3 +1294,28 @@ class MySql(AgentCheck):
             self._qcache_hits = int(results['Qcache_hits'])
             self._qcache_inserts = int(results['Qcache_inserts'])
             self._qcache_not_cached = int(results['Qcache_not_cached'])
+
+    def _query_processlist_size(self, db):
+        # Fetches the size of the processlist broken down by state
+
+        sql_query_processlist = """
+        select command as state, count(*) as size from information_schema.processlist group by command;
+        """
+
+        try:
+            with closing(db.cursor()) as cursor:
+                cursor.execute(sql_query_processlist)
+                processlist_size = {}
+                for row in cursor.fetchall():
+                    state = str(row[0]).lower().replace(' ','_')
+                    size = long(row[1])
+
+                    # Set tag
+                    processlist_size["state:{0}".format(state)] = size
+
+                return processlist_size
+
+        except (pymysql.err.InternalError, pymysql.err.OperationalError) as e:
+            self.warning("Can't retrieve processlist states from information_schema: %s" % str(e))
+
+        return {}
